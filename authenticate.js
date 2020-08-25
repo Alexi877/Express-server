@@ -38,10 +38,8 @@ exports.jwtPassport = passport.use(
     )
 );
 
-exports.verifyUser = passport.authenticate('jwt', {session: false});
-
 exports.verifyAdmin = function(req, res, next) {
-    if(req.user.admin == true) {
+    if(req.user.admin) {
         return next();
     } else {
         res.statusCode = 403;
@@ -49,3 +47,6 @@ exports.verifyAdmin = function(req, res, next) {
         return next(err);
     }
 }
+
+exports.verifyUser = passport.authenticate('jwt', {session: false});
+

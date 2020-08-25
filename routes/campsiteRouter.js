@@ -172,21 +172,28 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
 .put(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
-    if (req.user._id == campsite.comments.author) {
         if (campsite && campsite.comments.id(req.params.commentId)) {
-            if (req.body.rating) {
-                campsite.comments.id(req.params.commentId).rating = req.body.rating;
+            console.log("user logged in" + req.user._id);
+            console.log("user that posted comment" + campsite.comments.id(req.params.commentId).author._id);
+            if (req.user._id.equals(campsite.comments.id(req.params.commentId).author._id)) {
+                if (req.body.rating) {
+                    campsite.comments.id(req.params.commentId).rating = req.body.rating;
+                }
+                if (req.body.text) {
+                    campsite.comments.id(req.params.commentId).text = req.body.text;
+                }
+                campsite.save()
+                .then(campsite => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(campsite);
+                })
+                .catch(err => next(err));
+            } else {
+                err = new Error(`Author Id doesn't match the comment trying to be deleted`);
+                res.statusCode = 403;
+                return next(err);
             }
-            if (req.body.text) {
-                campsite.comments.id(req.params.commentId).text = req.body.text;
-            }
-            campsite.save()
-            .then(campsite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(campsite);
-            })
-            .catch(err => next(err));
         } else if (!campsite) {
             err = new Error(`Campsite ${req.params.campsiteId} not found`);
             err.status = 404;
@@ -196,19 +203,14 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
             err.status = 404;
             return next(err);
         }
-    } else {
-        err = new Error(`Author Id doesn't match the comment tryingn to be deleted`);
-        res.statusCode = 403;
-        return next(err);
-    }
     })
     .catch(err => next(err));
 })
 .delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
-    if (req.user._id == campsite.comments.author) {
         if (campsite && campsite.comments.id(req.params.commentId)) {
+            if (req.user._id.equals(campsite.comments.id(req.params.commentId).author._id)) {
             campsite.comments.id(req.params.commentId).remove();
             campsite.save()
             .then(campsite => {
@@ -216,21 +218,21 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
                 res.setHeader('Content-Type', 'application/json');
                 res.json(campsite);
             })
-            .catch(err => next(err));
-        } else if (!campsite) {
-            err = new Error(`Campsite ${req.params.campsiteId} not found`);
-            err.status = 404;
-            return next(err);
-        } else {
-            err = new Error(`Comment ${req.params.commentId} not found`);
-            err.status = 404;
-            return next(err);
-        }
+                .catch(err => next(err));
     } else {
-        err = new Error(`Author Id doesn't match the comment tryingn to be deleted`);
+        err = new Error(`Author Id doesn't match the comment trying to be deleted`);
         res.statusCode = 403;
         return next(err);
     }
+    } else if (!campsite) {
+        err = new Error(`Campsite ${req.params.campsiteId} not found`);
+        err.status = 404;
+        return next(err);
+    } else {
+        err = new Error(`Comment ${req.params.commentId} not found`);
+        err.status = 404;
+        return next(err);
+        }
     })
     .catch(err => next(err));
 });
